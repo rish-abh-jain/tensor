@@ -1,66 +1,104 @@
-from keras.layers import Convolution2D
-from keras.layers import MaxPooling2D
-from keras.layers import Flatten
-from keras.layers import Dense
+from keras.applications import VGG16
+from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.models import Sequential
-model = Sequential()
-model.add(Convolution2D(filters=32, 
-                        kernel_size=(3,3), 
-                        activation='relu',
-                   input_shape=(64, 64, 3)
-                       ))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Convolution2D(filters=32, 
-                        kernel_size=(3,3), 
-                        activation='relu',
-                       ))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Flatten())
-model.add(Dense(units=128, activation='relu'))
-model.add(Dense(units=1, activation='sigmoid'))
-model.summary()
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-from keras_preprocessing.image import ImageDataGenerator
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers.normalization import BatchNormalization
+from keras.models import Model
+from keras.preprocessing.image import ImageDataGenerator
+from keras.optimizers import RMSprop
+from keras.callbacks import ModelCheckpoint, EarlyStopping
+
+# VGG16 was designed to work on 224 x 224 pixel input images sizes
+img_rows = 224
+img_cols = 224
+
+#Loads the VGG16 model
+model = VGG16(weights = 'imagenet', 
+                 include_top = False, 
+                 input_shape = (img_rows, img_cols, 3))
+for layer in model.layers:
+    layer.trainable = False
+    
+# Let's print our layers 
+for (i,layer) in enumerate(model.layers):
+    print(str(i) + " "+ layer.__class__.__name__, layer.trainable)
+def addTopModel(bottom_model, num_classes, D=256):
+    """creates the top or head of the model that will be 
+    placed ontop of the bottom layers"""
+    top_model = bottom_model.output
+    top_model = Flatten(name = "flatten")(top_model)
+    top_model = Dense(D, activation = "relu")(top_model)
+    top_model = Dense(D, activation = "relu")(top_model)
+    top_model = Dropout(0.3)(top_model)
+    top_model = Dense(num_classes, activation = "softmax")(top_model)
+    return top_model
+num_classes = 2
+
+FC_Head = addTopModel(model, num_classes)
+
+modelnew = Model(inputs=model.input, outputs=FC_Head)
+
+print(modelnew.summary())
+train_data_dir = 'DATA//train//'
+validation_data_dir = 'DATA//test//'
+
 train_datagen = ImageDataGenerator(
-        rescale=1./255,
-        shear_range=0.2,
-        zoom_range=0.2,
-        horizontal_flip=True)
-test_datagen = ImageDataGenerator(rescale=1./255)
-training_set = train_datagen.flow_from_directory(
-        'cnn_dataset/training_set/',
-        target_size=(64, 64),
-        batch_size=32,
-        class_mode='binary')
-test_set = test_datagen.flow_from_directory(
-        'cnn_dataset/test_set/',
-        target_size=(64, 64),
-        batch_size=32,
-        class_mode='binary')
-model.fit(
-        training_set,
-        steps_per_epoch=8000,
-        epochs=25,
-        validation_data=test_set,
-        validation_steps=800)
-from keras.models import load_model
-m = load_model('cnn-cat-dog-model.h5')
-from keras.preprocessing import image
-test_image = image.load_img('cnn_dataset/single_prediction/cat_or_dog_2.jpg', 
-               target_size=(64,64))
-type(test_image)
-test_image = image.img_to_array(test_image)
-type(test_image)
-test_image.shape
-import numpy as np 
-test_image = np.expand_dims(test_image, axis=0)
-test_image.shape
-result = m.predict(test_image)
-print(result)
-if result[0][0] == 0:
-    print('cat')
-else:
-    print('dog')
-result[0][0]
-r = training_set.class_indices
-print(r)
+      rescale=1./255,
+      rotation_range=20,
+      width_shift_range=0.2,
+      height_shift_range=0.2,
+      horizontal_flip=True,
+      fill_mode='nearest')
+ 
+validation_datagen = ImageDataGenerator(rescale=1./255)
+ 
+# Change the batchsize according to your system RAM
+train_batchsize = 32
+val_batchsize = 10
+ 
+train_generator = train_datagen.flow_from_directory(
+        train_data_dir,
+        target_size=(img_rows, img_cols),
+        batch_size=train_batchsize,
+        class_mode='categorical')
+ 
+validation_generator = validation_datagen.flow_from_directory(
+        validation_data_dir,
+        target_size=(img_rows, img_cols),
+        batch_size=val_batchsize,
+        class_mode='categorical',
+        shuffle=False)
+checkpoint = ModelCheckpoint("faces.h5",
+                             monitor="val_loss",
+                             mode="min",
+                             save_best_only = True,
+                             verbose=1)
+
+earlystop = EarlyStopping(monitor = 'val_loss', 
+                          min_delta = 0, 
+                          patience = 3,
+                          verbose = 1,
+                          restore_best_weights = True)
+
+# we put our call backs into a callback list
+callbacks = [earlystop, checkpoint]
+
+# Note we use a very small learning rate 
+modelnew.compile(loss = 'categorical_crossentropy',
+              optimizer = RMSprop(lr = 0.001),
+              metrics = ['accuracy'])
+
+nb_train_samples = 1000
+nb_validation_samples = 200
+epochs = 1
+batch_size = 32
+
+history = modelnew.fit_generator(
+    train_generator,
+    steps_per_epoch = nb_train_samples // batch_size,
+    epochs = epochs,
+    callbacks = callbacks,
+    validation_data = validation_generator,
+    validation_steps = nb_validation_samples // batch_size)
+
+modelnew.save("faces.h5")
