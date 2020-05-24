@@ -1,5 +1,5 @@
 # Import essentials
-import keras
+import keras conv2d
 from keras.datasets import mnist
 from keras.models import Sequential
 from keras.utils.np_utils import to_categorical
