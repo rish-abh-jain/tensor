@@ -7,6 +7,7 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 from keras.backend import clear_session
 import numpy
+import os
 
 # Load Model 
 (train_X , train_y), (test_X , test_y) = mnist.load_data("mymnist.data")
@@ -34,4 +35,5 @@ accuracy = int(accuracy)
 f= open("accuracy.txt","w+")
 f.write(str(accuracy))
 f.close()
+os.system("mv /accuracy.txt /project")
 print("Accuracy for the model is : " , accuracy ,"%")
