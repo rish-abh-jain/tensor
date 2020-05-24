@@ -1,6 +1,6 @@
 from keras.applications import VGG16
-from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
