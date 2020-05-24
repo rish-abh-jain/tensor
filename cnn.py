@@ -1,13 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 from keras.applications import VGG16
+from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D, ZeroPadding2D
 from keras.layers.normalization import BatchNormalization
 from keras.models import Model
 from keras.preprocessing.image import ImageDataGenerator
@@ -45,8 +39,8 @@ FC_Head = addTopModel(model, num_classes)
 modelnew = Model(inputs=model.input, outputs=FC_Head)
 
 print(modelnew.summary())
-train_data_dir = 'Datasets//Datasets//Train//'
-validation_data_dir = 'Datasets//Datasets//validation//'
+train_data_dir = 'DATA//train//'
+validation_data_dir = 'DATA//test//'
 
 train_datagen = ImageDataGenerator(
       rescale=1./255,
@@ -108,10 +102,6 @@ history = modelnew.fit_generator(
     validation_steps = nb_validation_samples // batch_size)
 
 modelnew.save("faces.h5")
-
-
-# In[ ]:
-
 
 
 
