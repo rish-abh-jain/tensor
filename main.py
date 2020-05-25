@@ -32,7 +32,7 @@ fit_model = model.fit(train_X ,  train_y , epochs = 2 , verbose =  False)
 text = fit_model.history
 accuracy = text['accuracy'][1] * 100
 accuracy = int(accuracy)
-f= open("accuracy.txt","w+")
+f= open("/accu/accuracy.txt","w+")
 f.write(str(accuracy))
 f.close()
 # os.system("mv /r/project/accuracy.txt /")
